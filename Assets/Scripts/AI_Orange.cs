@@ -23,7 +23,7 @@ public class AI_Orange : BotAI
         BotAI enemy = FindClosestEnemy();
         AI_Orange ally = ( AI_Orange ) FindClosestAlly();
 
-        if ( enemy != null )
+        if ( enemy != null && !ManualControl )
         {
             if ( DistanceToBot( enemy ) > 10f )
             {
@@ -31,9 +31,9 @@ public class AI_Orange : BotAI
 
                 if ( DistanceToBot( ally ) < 5f )
                 {
-                    if ( ID <= 1 )
+                    if ( ID %2 == 1 )
                     {
-                        MoveRight( .4f );
+                       MoveRight( .4f );
                     }
                     else
                     {

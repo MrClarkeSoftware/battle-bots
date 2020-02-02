@@ -13,6 +13,7 @@ public class BotAI : MonoBehaviour
     public GameObject LaserBullet;
 
     public GameObject StatusBar;
+    public bool ManualControl;
 
     private Image healthBar;
     private Image shieldBar;
@@ -205,8 +206,8 @@ public class BotAI : MonoBehaviour
         radius = GetComponent<CircleCollider2D>().radius;
 
         StatusBar = Instantiate( StatusBar , transform.position + new Vector3( 0 , 0.8f , 0 ) , Quaternion.identity ) as GameObject;
-        healthBar = StatusBar.transform.FindChild( "healthBar" ).GetComponent<Image>();
-        shieldBar = StatusBar.transform.FindChild( "shieldBar" ).GetComponent<Image>();
+        healthBar = StatusBar.transform.Find( "healthBar" ).GetComponent<Image>();
+        shieldBar = StatusBar.transform.Find( "shieldBar" ).GetComponent<Image>();
 
         halfArenaWidth = Camera.main.orthographicSize * Screen.width / ( float ) Screen.height - radius;
         halfArenaHeight = Camera.main.orthographicSize - radius;
@@ -236,12 +237,23 @@ public class BotAI : MonoBehaviour
     // Update is called once per frame
     protected void Update()
     {
-
+       
     }
 
 
     protected void FixedUpdate()
     {
+        if (ManualControl)
+        {
+            if (Input.GetButton("Jump"))
+                Shoot();
+            Rotate(Input.GetAxis("Horizontal") * -100);
+            //transform.Rotate(0, 0, Input.GetAxis("Horizontal"));
+            if ((Input.GetAxis("Vertical") > 0))
+                MoveForward(2);
+            if ((Input.GetAxis("Vertical") < 0))
+                MoveBackward(2);
+        }
         turn = Mathf.Clamp( turn , -1f , 1f );
         transform.Rotate( Vector3.forward * turn * turnScale * Time.fixedDeltaTime );
         turn = 0f;
@@ -285,7 +297,7 @@ public class BotAI : MonoBehaviour
         if ( shieldChargeTimer <= 0 && shield < maxShield )
         {
             shield += shieldChargeRate * Time.fixedDeltaTime;
-
+            
             if ( shield > maxShield )
             {
                 shield = maxShield;
@@ -330,8 +342,12 @@ public class BotAI : MonoBehaviour
 
             if ( health <= 0 )
             {
+                // Switch Manual Control to closest Ally
+                if (ManualControl && FindClosestAlly() != null)
+                    FindClosestAlly().ManualControl = true;
+                gameObject.SetActive(false);
+                //Destroy( gameObject );
                 Destroy( StatusBar );
-                Destroy( gameObject );
             }
         }
     }
@@ -346,10 +362,14 @@ public class BotAI : MonoBehaviour
 
     protected bool Shoot()
     {
-        if ( shotTimer <= 0 )
+        if ( shotTimer <= 0  && health > 0)
         {
             GameObject bullet = Instantiate( LaserBullet , transform.position + ( transform.rotation * new Vector3( 0.4f , 0 , 0 ) ) , transform.rotation ) as GameObject;
-            bullet.GetComponent<BulletBehavior>().Init( team , shotDamage , shotSpeed );
+            int factor = 1;
+            if (ManualControl)
+                factor = 2;
+
+            bullet.GetComponent<BulletBehavior>().Init( team , factor * shotDamage , factor * shotSpeed );
             shotTimer = shotDelay;
             return true;
         }
@@ -540,7 +560,7 @@ public class BotAI : MonoBehaviour
 
     protected BotAI[] FindEnemies()
     {
-        return FilterEnemies( FindBots() );
+       return FilterEnemies( FindBots());
     }
 
 
@@ -749,7 +769,7 @@ public class BotAI : MonoBehaviour
 
         foreach ( BotAI bot in bots )
         {
-            if ( bot.gameObject.layer != gameObject.layer )
+            if ( bot.gameObject.layer != gameObject.layer && bot.health > 0)
             {
                 enemyCount++;
             }
@@ -760,7 +780,7 @@ public class BotAI : MonoBehaviour
 
         foreach ( BotAI bot in bots )
         {
-            if ( bot.gameObject.layer != gameObject.layer )
+            if ( bot.gameObject.layer != gameObject.layer && bot.health > 0)
             {
                 enemies[ i ] = bot;
                 i++;
